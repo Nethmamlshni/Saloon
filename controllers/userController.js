@@ -2,44 +2,136 @@ import User from '../models/userModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 // Register a new user
 // Register a new user with basic validation
 export const registerUser = async (req, res) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, email, password, TPNumber } = req.body;
 
-        // Validate request data
-        if (!username || !email || !password) {
-            return res.status(400).json({ message: 'All fields are required' });
+        if (!username || !email || !password || !TPNumber) {
+            return res.status(400).json({ error: "All fields are required" });
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email });
+        // Check if email or TPNumber already exists
+        const existingUser = await User.findOne({ $or: [{ email }, { TPNumber }] });
         if (existingUser) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json({ error: "User already exists with this email or phone number" });
         }
 
-        // Hash the password before saving
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = new User({ username, email, password: hashedPassword });
+        // Create User (password hashing happens in the model)
+        const newUser = new User({ username, email, password: hashedPassword, TPNumber });
         await newUser.save();
 
-        res.status(201).json({ message: 'User registered successfully', user: newUser });
+        res.status(201).json({ message: "User registered successfully" });
+
     } catch (error) {
-        res.status(500).json({ error: 'Failed to register user', details: error.message });
+        console.error("Registration Error:", error);
+        res.status(500).json({ error: "Server error", details: error.message });
     }
 };
 
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email, TPNumber } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user || user.TPNumber !== TPNumber) {
+            return res.status(400).json({ error: "Invalid email or phone number" });
+        }
+
+        // Generate a secure reset token
+        const resetToken = jwt.sign(
+            { userId: user._id, email: user.email }, // Include email in the token
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        );
+
+        user.resetToken = resetToken;
+        await user.save();
+
+        // Send email with reset link
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "nethmamalshani2002@gmail.com", // Replace with your email
+                pass: "uhpf dtex dbty wrbe", // Use an app password (NOT your email password)
+            },
+        });
+
+        const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+        await transporter.sendMail({
+            from: '"Support Team" <nethmamalshani2002@gmail.com>',
+            to: user.email,
+            subject: "Password Reset Request",
+            html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
+        });
+
+        res.json({ message: "Password reset email sent!" });
+    } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        // Validate input
+        if (!token || !newPassword) {
+            return res.status(400).json({ message: "Token and new password are required." });
+        }
+
+        // Token verification
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);// Check the structure of the decoded token
+        } catch (error) {
+            if (error.name === "TokenExpiredError") {
+                return res.status(401).json({ message: "Token has expired. Please request a new one." });
+            }
+            return res.status(400).json({ message: "Invalid token." });
+        }
+
+        // Find the user using the decoded token's userId
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Check for valid password length
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters long." });
+        }
+
+        // Hash the new password before saving
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update the user's password
+        user.password = hashedPassword;
+        await user.save();
+
+        // Respond with success message
+        res.status(200).json({ message: "Password reset successful. You can now log in with your new password." });
+    } catch (error) {
+        console.error("Reset password error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
 
 // Login and JWT Authentication System
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Validate input
+        //  Validate input fields
         if (!email || !password) {
             return res.status(400).json({ message: "All fields are required" });
         }
@@ -50,16 +142,22 @@ export const loginUser = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Check the password
+        //  Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        // Generate JWT token
+        //  Ensure JWT secret exists
+        if (!process.env.JWT_SECRET) {
+            console.error("JWT_SECRET is not defined in .env file");
+            return res.status(500).json({ message: "Server error: missing JWT secret" });
+        }
+
+        //  Generate JWT token
         const token = jwt.sign(
             { userId: user._id, username: user.username, email: user.email },
-            process.env.JWT_SECRET, // Secret key from the .env file
+            process.env.JWT_SECRET, // Use secret from .env
             { expiresIn: "1h" } // Token expires in 1 hour
         );
 
@@ -69,9 +167,11 @@ export const loginUser = async (req, res) => {
             token: token,
         });
     } catch (error) {
-        res.status(500).json({ error: "Login failed", details: error.message });
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
 
 // Get all users
 export const getAllUsers = async (req, res) => {

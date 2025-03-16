@@ -12,27 +12,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use('/api/users', Userouter);
-app.use('/api/bookings', Bookingrouter);
-
-
-const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization')?.split(' ')[1]; // Extract token from Authorization header
-
-    if (!token) {
-        return res.status(403).json({ message: 'Token required' });
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid token' });
-        }
-        req.user = decoded; // Store the decoded token in the request object
-        next();
-    });
-};
-
-export default authenticateToken;
-
+app.use('/api/bookings',Bookingrouter);
 
 const connect =process.env.Mongo_Url; ;
 
