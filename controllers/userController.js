@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import mongoose from 'mongoose';
 
 dotenv.config();
 // Register a new user
@@ -36,7 +37,6 @@ export const registerUser = async (req, res) => {
         res.status(500).json({ error: "Server error", details: error.message });
     }
 };
-
 
 export const forgotPassword = async (req, res) => {
     try {
@@ -172,7 +172,6 @@ export const loginUser = async (req, res) => {
     }
 };
 
-
 // Get all users
 export const getAllUsers = async (req, res) => {
     try {
@@ -199,6 +198,11 @@ export const getUserById = async (req, res) => {
 // Delete a user
 export const deleteUser = async (req, res) => {
     try {
+        // Ensure the logged-in user is either an admin or the user requesting the deletion
+        if (req.user.id !== req.params.id) {
+            return res.status(403).json({ message: 'You are not authorized to delete this account' });
+        }
+
         const deletedUser = await User.findByIdAndDelete(req.params.id);
         if (!deletedUser) {
             return res.status(404).json({ message: 'User not found' });
@@ -206,5 +210,50 @@ export const deleteUser = async (req, res) => {
         res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete user', details: error.message });
+    }
+};
+
+// Update a user
+export const updateUser = async (req, res) => {
+    try {
+        // Ensure user is authenticated
+        if (!req.user) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+
+        // Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
+
+        // Ensure the logged-in user is authorized
+        if (req.user.userId !== req.params.id) {
+            console.log('Unauthorized update attempt:', req.user.id, req.params.id);
+            return res.status(403).json({ message: 'You are not authorized to update this account' });
+        }
+        console.log(req.user);
+
+        // Validate request body fields
+        const { username, email, TPNumber } = req.body;
+        if (!username || !email || !TPNumber ) {
+            return res.status(400).json({ message: 'All fields are required' });
+
+        }
+
+        // Update user in database
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            { username, email, TPNumber },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ message: 'User updated successfully', user: updatedUser });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: 'Failed to update user', details: error.message });
     }
 };
