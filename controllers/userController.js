@@ -62,14 +62,14 @@ export const forgotPassword = async (req, res) => {
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
-                user: "nethmamalshani2002@gmail.com", // Replace with your email
-                pass: "uhpf dtex dbty wrbe", // Use an app password (NOT your email password)
+                user: process.env.EMAIL, 
+                pass: process.env.EMAIL_PASSWORD, 
             },
         });
 
-        const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+        const resetLink = `${process.env.RESET_LINKS}/reset-password/${resetToken}`;
         await transporter.sendMail({
-            from: '"Support Team" <nethmamalshani2002@gmail.com>',
+            from: '"Support Team" <${process.env.EMAIL}>',
             to: user.email,
             subject: "Password Reset Request",
             html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
