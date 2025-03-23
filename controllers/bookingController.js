@@ -59,3 +59,25 @@ export const deleteBooking = async (req, res) => {
         res.status(500).json({ error: 'Failed to delete booking', details: error.message });
     }
 };
+
+// Confirm booking (PUT request)
+export const confirmBooking = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const booking = await Booking.findById(id);
+    
+        if (!booking) {
+          return res.status(404).json({ message: 'Booking not found' });
+        }
+    
+        // Update the booking type to 'confirm'
+        booking.type = 'confirm';
+        await booking.save();
+        console.log(booking
+          );
+    
+        res.status(200).json({ message: 'Booking confirmed successfully', booking });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to confirm booking', details: error.message });
+      }
+    };

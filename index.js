@@ -3,6 +3,9 @@ import bodyParser from 'body-parser';
 import Userouter from './routes/userRoute.js';
 import Bookingrouter from './routes/bookingRoute.js';
 import Feedbackrouter from './routes/feedbackRoute.js';
+import Inforrouter from './routes/informationRoute.js';
+import Pricerouter from './routes/priceRoute.js';
+import Servicerouter from './routes/serviseRoute.js';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
@@ -15,6 +18,9 @@ app.use(bodyParser.json());
 app.use('/api/users', Userouter);
 app.use('/api/bookings',Bookingrouter);
 app.use('/api/feedbacks',Feedbackrouter);
+app.use('/api/information',Inforrouter);
+app.use('/api/price',Pricerouter);
+app.use('/api/servises',Servicerouter);
 
 const connect =process.env.Mongo_Url; ;
 

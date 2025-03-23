@@ -12,6 +12,6 @@ const Feedbackrouter = express.Router();
 Feedbackrouter.post('/feedback',  createFeedback);
 Feedbackrouter.get('/feedback', getAllFeedback);
 Feedbackrouter.get('/feedback/:id', getFeedbackById);
-Feedbackrouter.delete('/feedback/:id', authenticateToken, deleteFeedback);
+Feedbackrouter.delete('/feedback/:id',  deleteFeedback);
 
 export default Feedbackrouter;
