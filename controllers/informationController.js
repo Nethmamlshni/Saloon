@@ -37,7 +37,11 @@ export const getTeamMemberById = async (req, res) => {
 // Update a team member
 export const updateTeamMember = async (req, res) => {
     try {
-        const updatedTeamMember = await TeamMember.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const updatedTeamMember = await TeamMember.findByIdAndUpdate(
+            req.params.id, 
+            req.body, 
+            { new: true } 
+        );
         if (!updatedTeamMember) {
             return res.status(404).json({ message: "Team member not found" });
         }
@@ -46,6 +50,7 @@ export const updateTeamMember = async (req, res) => {
         res.status(500).json({ error: "Failed to update team member", details: error.message });
     }
 };
+
 
 // Delete a team member
 export const deleteTeamMember = async (req, res) => {

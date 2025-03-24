@@ -32,15 +32,16 @@ export const createService = async (req, res) => {
 
 export const updateService = async (req, res) => {
     try {
-        const updatedService = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!updatedService) {
-            return res.status(404).json({ message: 'Service not found' });
-        }
-        res.status(200).json(updatedService);
+      const updatedService = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!updatedService) {
+        return res.status(404).json({ message: 'Service not found' });
+      }
+      res.status(200).json(updatedService);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update service', details: error.message });
+      res.status(500).json({ error: 'Failed to update service', details: error.message });
     }
-};
+  };
+  
 
 export const deleteService = async (req, res) => {
     try {
