@@ -1,13 +1,47 @@
 import Booking from '../models/bookingModel.js';
+import nodemailer from 'nodemailer';
+
+
+const sendEmailNotification = async (customerName, note, phone, date, time) => {
+    try {
+        // Configure Nodemailer transporter
+        const transporter = nodemailer.createTransport({
+            service: process.env.SERVER,
+            auth: {
+                user: process.env.EMAIL_BOOKING, 
+                pass: process.env.BOOKING_PASSWORD,  
+            },
+        });
+
+        // Email content
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.EMAIL_BOOKING,
+            subject: "New Booking Notification",
+            text: `A new booking has been made:\n\nName: ${customerName}\nNote: ${note}\nPhone: ${phone}\nDate: ${date}\nTime: ${time}`,
+        };
+
+        // Send email
+        await transporter.sendMail(mailOptions);
+       console.log("Email sent successfully!");
+    } catch (error) {
+        console.error("Error sending email:", error);
+    }
+};
 
 // Create a new booking
 export const createBooking = async (req, res) => {
     try {
+        const { customerName, note, phone, date, time } = req.body;
+
         const newBooking = new Booking(req.body);
         await newBooking.save();
-        res.status(201).json({ message: 'Booking created successfully', booking: newBooking });
+
+        await sendEmailNotification(customerName, note, phone, date, time);
+
+        res.status(201).json({ message: "Booking created successfully", booking: newBooking });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create booking', details: error.message });
+        res.status(500).json({ error: "Failed to create booking", details: error.message });
     }
 };
 

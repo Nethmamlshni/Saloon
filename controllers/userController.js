@@ -48,7 +48,6 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ error: "Invalid email or phone number" });
         }
 
-        // Generate a secure reset token
         const resetToken = jwt.sign(
             { userId: user._id, email: user.email }, // Include email in the token
             process.env.JWT_SECRET,
@@ -58,9 +57,8 @@ export const forgotPassword = async (req, res) => {
         user.resetToken = resetToken;
         await user.save();
 
-        // Send email with reset link
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            service: process.env.SERVER,
             auth: {
                 user: process.env.EMAIL, 
                 pass: process.env.EMAIL_PASSWORD, 
@@ -77,8 +75,10 @@ export const forgotPassword = async (req, res) => {
 
         res.json({ message: "Password reset email sent!" });
     } catch (error) {
-        res.status(500).json({ error: "Server error" });
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({ error: "Server error", details: error.message });
     }
+    
 };
 
 export const resetPassword = async (req, res) => {
@@ -92,7 +92,7 @@ export const resetPassword = async (req, res) => {
         // Token verification
         let decoded;
         try {
-            decoded = jwt.verify(token, process.env.JWT_SECRET);// Check the structure of the decoded token
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
             if (error.name === "TokenExpiredError") {
                 return res.status(401).json({ message: "Token has expired. Please request a new one." });
@@ -100,7 +100,6 @@ export const resetPassword = async (req, res) => {
             return res.status(400).json({ message: "Invalid token." });
         }
 
-        // Find the user using the decoded token's userId
         const user = await User.findById(decoded.userId);
         if (!user) {
             return res.status(404).json({ message: "User not found." });

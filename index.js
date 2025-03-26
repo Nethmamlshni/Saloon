@@ -31,6 +31,16 @@ app.use(
   })
 );
 
+/*app.use(cors());  // if you are you using vercel this one hide . if you are using local host use the one above
+
+app.use(
+  cors({
+    origin: "http://localhost:5173", 
+    methods: "GET,POST,PUT,DELETE",
+    allowedHeaders: "Content-Type,Authorization", 
+  })
+);*/
+
 app.use(bodyParser.json());
 
 // Routes
